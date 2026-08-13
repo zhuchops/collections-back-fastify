@@ -1,0 +1,8 @@
+.env
+node_modules/
+drizzle/meta/
+docker-compose.yml
+
+/src/generated/prisma
+pnpm-lock.yaml
+pnpm-workspace.yaml
