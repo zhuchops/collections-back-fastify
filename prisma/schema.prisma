@@ -22,11 +22,12 @@ model User {
 }
 
 model Collection {
-  id     Int    @id @default(autoincrement())
-  userId Int
-  title  String
-  cards  Card[]
-  user   User   @relation(fields: [userId], references: [id])
+  id          Int    @id @default(autoincrement())
+  userId      Int
+  title       String
+  description String
+  cards       Card[]
+  user        User   @relation(fields: [userId], references: [id])
 }
 
 model Card {

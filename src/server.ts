@@ -11,6 +11,7 @@ import { authRoutes } from './handlers/auth.ts';
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import { authenticate } from './middleware/authenticate.ts';
 import { userRoutes } from './handlers/users.ts';
+import { collectionsRoutes } from './handlers/collections.ts';
 
 const app = Fastify({ logger: true });
 
@@ -38,6 +39,7 @@ app.register(authRoutes)
 app.register(async (protectedRoutes) => {
   protectedRoutes.addHook('preHandler', authenticate)
   protectedRoutes.register(userRoutes)
+  protectedRoutes.register(collectionsRoutes)
 })
 
 app.listen({ port: 8080 }, (err, address) => {
