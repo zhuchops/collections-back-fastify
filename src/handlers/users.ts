@@ -1,36 +1,44 @@
-import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
-import { getUser, updateUser, type UpdateUserParams } from "../db/queries/users.ts";
 import z from "zod";
+import { db } from "../db/index.ts";
+import { users } from "../db/schema.ts";
+import { eq } from "drizzle-orm";
+import type { FastifyPluginAsync } from "fastify";
 
-export const getUserResponseJSON = z.object({
+export const getUserResponseSchema = z.object({
   email: z.string(),
-  username: z.string()
-})
+  username: z.string(),
+});
 
-export const patchUserRequestJSON = z.object({
+export const patchUserRequestSchema = z.object({
   email: z.string(),
-  username: z.string()
-})
+  username: z.string(),
+});
 
-export const userRoutes: FastifyPluginAsyncZod = async (app) => {
-  app.get('/api/users/me', { schema: { response: { 200: getUserResponseJSON } } },
-    async (request, reply) => {
-      const user = await getUser(parseInt(request.user?.id!));
-      if (!user) {
-        reply.notFound('User not found');
-        return;
-      }
-      return {
-        email: user.email,
-        username: user.username
-      };
+export const userRoutes: FastifyPluginAsync = async (app) => {
+  app.get("/api/users/me", async (request, reply) => {
+    const result = await db
+      .select({
+        email: users.email,
+        username: users.username,
+      })
+      .from(users)
+      .where(eq(users.id, request.user.id));
+    const user = result[0];
+    if (!user) {
+      return reply.code(404).send({ message: "User with such id not found" });
     }
-  );
-  app.patch('/api/users/me', { schema: { body: patchUserRequestJSON } },
+    return reply.send(user);
+  });
+  app.patch(
+    "/api/users/me",
+    { schema: { body: patchUserRequestSchema } },
     async (request, reply) => {
-      const params: UpdateUserParams = { email: request.body.email, username: request.body.username };
-      const id = request.user?.id!;
-      await updateUser(parseInt(id), params)
-    }
+      // const params: UpdateUserParams = {
+      //   email: request.body.email,
+      //   username: request.body.username,
+      // };
+      // const id = request.user?.id!;
+      // await updateUser(parseInt(id), params);
+    },
   );
-}
+};

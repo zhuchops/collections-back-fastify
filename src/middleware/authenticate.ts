@@ -1,28 +1,31 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import jwt from 'jsonwebtoken';
+import { db } from "../db/index.ts";
+import { sessions } from "../db/schema.ts";
+import { eq } from "drizzle-orm";
 
-const jwtSecret = process.env.JWT_SECRET!;
+export async function authenticate(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const sessionId = request.cookies.session;
 
-export async function authenticate(request: FastifyRequest, reply: FastifyReply) {
-  const jwtString = request.cookies['jwt'];
-  if (!jwtString) {
-    reply.unauthorized('Missing token');
-    return;
+  if (!sessionId) {
+    return reply.code(401).send({ message: "Unauthorized" });
   }
 
-  try {
-    const payload = jwt.verify(jwtString, jwtSecret) as { user_id: string };
-    request.user = { id: payload.user_id }
-  } catch (err) {
-    if (err instanceof jwt.TokenExpiredError) {
-      reply.unauthorized('Token expired');
-      return;
-    }
-    if (err instanceof jwt.JsonWebTokenError) {
-      reply.unauthorized('Invalid token');
-      return;
-    }
-    reply.unauthorized('Unauthorized');
-    return;
+  const result = await db
+    .select()
+    .from(sessions)
+    .where(eq(sessions.id, sessionId));
+
+  const session = result[0];
+
+  if (!session) {
+    return reply.code(401).send({ message: "Unauthorized" });
+  }
+
+  if (session.expiresAt < new Date()) {
+    await db.delete(sessions).where(eq(sessions.id, sessionId));
+    return reply.code(401).send({ message: "Session expired" });
   }
 }
